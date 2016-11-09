@@ -24,6 +24,8 @@ func main() {
 	args := struct {
 		Addr string `flag:"addr,address to listen at"`
 		Conf string `flag:"config,configuration file"`
+		User string `flag:"user,basic auth user"`
+		Pass string `flag:"pass,basic auth password"`
 	}{
 		Addr: "localhost:8080",
 		Conf: "mapping.json",
@@ -36,6 +38,7 @@ func main() {
 		logger.Fatal(err)
 	}
 	h := withLog(newHandler(), logger)
+	h = withBasicAuth(h, args.User, args.Pass)
 	for k, v := range creds {
 		f, err := sqlBlacklister(v.DSN, v.Query)
 		if err != nil {
@@ -104,6 +107,8 @@ type handler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	log    *log.Logger
+
+	user, pass string // credentials for http basic authentication
 }
 
 // newHandler returns initialized handler
@@ -120,6 +125,12 @@ func newHandler() *handler {
 // withLog attaches logger to handler
 func withLog(h *handler, logger *log.Logger) *handler {
 	h.log = logger
+	return h
+}
+
+// withBasicAuth makes handler require basic http authentication
+func withBasicAuth(h *handler, user, pass string) *handler {
+	h.user, h.pass = user, pass
 	return h
 }
 
@@ -150,6 +161,13 @@ func (h *handler) Register(srcEmail string, f blacklister) {
 
 // ServeHTTP implements http.Handler interface.
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.user != "" && h.pass != "" {
+		if u, p, ok := r.BasicAuth(); !ok || u != h.user || p != h.pass {
+			w.Header().Set("WWW-Authenticate", `Basic realm="private"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+	}
 	sns := new(snsMsg)
 	if err := json.NewDecoder(io.LimitReader(r.Body, 2<<20)).Decode(sns); err != nil {
 		h.log.Print(err)
