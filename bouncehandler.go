@@ -198,12 +198,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch msg.Type {
 	case "Bounce", "Complaint":
 	default:
+		h.log.Println("unsupported msg.Type:", msg.Type)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	sender := msg.Mail.Source
 	ch, ok := h.m[sender]
 	if !ok {
+		h.log.Println("unconfigured sender:", sender)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
