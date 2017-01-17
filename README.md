@@ -40,4 +40,3 @@ emails in database.
 	You may also optionally have one "catch-all" record in a mapping with key value
 	"*": it would be used if sender listed in bounce notification did not match any
 	other records.
-	exit status 2
