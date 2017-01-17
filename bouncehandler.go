@@ -205,6 +205,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sender := msg.Mail.Source
 	ch, ok := h.m[sender]
 	if !ok {
+		ch, ok = h.m[defaultKey]
+	}
+	if !ok {
 		h.log.Println("unconfigured sender:", sender)
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -285,6 +288,8 @@ func confirm(link string) error {
 	return nil
 }
 
+const defaultKey = "*"
+
 const aboutFormat = `
 Configuration file should be in json format, it is a mapping between sender
 emails and objects with two fields:
@@ -308,4 +313,8 @@ Example:
 		"sql": "update users set notify=0 where email=?"
 	}
 }
+
+You may also optionally have one "catch-all" record in a mapping with key value
+"*": it would be used if sender listed in bounce notification did not match any
+other records.
 `

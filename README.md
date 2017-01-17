@@ -9,6 +9,10 @@ emails in database.
 		address to listen at (default "localhost:8080")
 	  -config string
 		configuration file (default "mapping.json")
+	  -pass string
+		basic auth password
+	  -user string
+		basic auth user
 
 	Configuration file should be in json format, it is a mapping between sender
 	emails and objects with two fields:
@@ -32,3 +36,8 @@ emails in database.
 			"sql": "update users set notify=0 where email=?"
 		}
 	}
+
+	You may also optionally have one "catch-all" record in a mapping with key value
+	"*": it would be used if sender listed in bounce notification did not match any
+	other records.
+	exit status 2
